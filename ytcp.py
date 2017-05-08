@@ -24,7 +24,7 @@ ydl = YoutubeDL({ 'format': 'bestaudio/best' })
 def ydl_extract(url):
     return ydl.extract_info(url, download=False)
 
-def next():
+def next_song():
     global title
     try:
         song = random.choice(songs)
@@ -51,7 +51,7 @@ def mpv_event_handler(event):
     elif event['event_id'] in (mpv.MpvEventID.UNPAUSE, mpv.MpvEventID.START_FILE):
         socketio.emit('toggle', True)
     elif event['event_id'] == mpv.MpvEventID.IDLE:
-        next()
+        next_song()
 
 def mpv_observe_volume(level):
     if level:
@@ -88,7 +88,7 @@ def toggle():
 
 @socketio.on('skip')
 def skip():
-    next()
+    next_song()
 
 @socketio.on('add')
 def add(song):
@@ -111,6 +111,17 @@ def remove(song):
 @socketio.on('volume')
 def volume(level):
     player.volume = level
+
+@socketio.on('play')
+def play(song):
+    global title
+    try:
+        song = next(s for s in songs if s[0] == song)
+        title = song[1]['title']
+        player.play(song[1]['url'])
+        emit('next', title, broadcast=True)
+    except StopIteration:
+        emit('ytcp-error', 'Unknown song '.format(song))
 
 if __name__ == '__main__':
     socketio.run(app)
