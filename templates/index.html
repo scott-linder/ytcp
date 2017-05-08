@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g=" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <style>
+    .remove {
+        float: right;
+    }
+    @media (min-width: 1200px) {
+        .container{
+            max-width: 600px;
+        }
+    }
+    </style>
+    <title>YTCP</title>
+</head>
+<body>
+<div class="container">
+    <br>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title">Now Playing</h3>
+        </div>
+        <div class="panel-body" id="title"></div>
+    </div>
+    <div class="btn-group btn-group-justified">
+        <div class="btn-group">
+            <button id="toggle" class="btn btn-success"></button>
+        </div>
+        <div class="btn-group">
+            <button id="skip" class="btn btn-danger">Skip</button>
+        </div>
+    </div>
+    <br>
+    <div>
+        <input type="range" id="volume" step="10" min="0" max="100">
+    </div>
+    <br>
+    <div class="input-group">
+        <input id="song" type="text" class="form-control" placeholder="New song...">
+        <span class="input-group-btn">
+            <button id="add" class="btn btn-success">Add</button>
+        </span>
+    </div>
+    <br>
+    <div id="playlist" class="list-group">
+    </div>
+</div>
+<script type="text/javascript" charset="utf-8">
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    $('#toggle').click(function() {
+        socket.emit('toggle');
+    });
+    socket.on('toggle', function(is_playing) {
+        $('#toggle').html(is_playing
+                ? 'Pause <span class="fa fa-pause-circle"><span>'
+                : 'Play <span class="fa fa-play-circle"><span>');
+        $('#toggle').attr('class', is_playing
+                ? 'btn btn-primary control'
+                : 'btn btn-success control');
+    });
+    $('#skip').click(function() {
+        socket.emit('skip');
+    });
+    socket.on('next', function(title) {
+        $('#title').html(title);
+    });
+    $('#add').click(function() {
+        socket.emit('add', $('#song').val());
+        $('#song').val('');
+    });
+    socket.on('playlist', function(songs) {
+        $('#playlist').empty();
+        var i;
+        for (i = 0; i < songs.length; i++) {
+            $('#playlist').append(
+                '<div class="list-group-item">'
+                    + '<span>'
+                        + songs[i][1]['title']
+                    + '</span>'
+                    + '<a href="#" class="remove" onclick="socket.emit(\'remove\', \''
+                            + songs[i][0] + '\')">Remove</a>'
+                + '</div>'
+            );
+        }
+    });
+    $('#volume').change(function() {
+        socket.emit('volume', $(this).val());
+    });
+    socket.on('volume', function(level) {
+        $('#volume').val(level);
+    });
+    socket.on('ytcp-error', function(message) {
+        alert(message);
+    });
+</script>
+</body>
+</html>
