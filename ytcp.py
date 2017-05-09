@@ -29,7 +29,7 @@ def next_song():
     try:
         song = random.choice(songs)
         title = song[1]['title']
-        player.play(song[1]['url'])
+        player.play(song[0])
     except IndexError:
         title = ''
     socketio.emit('next', title, broadcast=True)
@@ -59,7 +59,7 @@ def mpv_observe_volume(level):
     else:
         socketio.emit('volume', 0)
 
-player = mpv.MPV('no-video', log_handler=mpv_log, ytdl=False)
+player = mpv.MPV('no-video', log_handler=mpv_log, ytdl=True)
 player.register_event_callback(mpv_event_handler)
 player.observe_property('volume', mpv_observe_volume)
 
@@ -118,7 +118,7 @@ def play(song):
     try:
         song = next(s for s in songs if s[0] == song)
         title = song[1]['title']
-        player.play(song[1]['url'])
+        player.play(song[0])
         emit('next', title, broadcast=True)
     except StopIteration:
         emit('ytcp-error', 'Unknown song '.format(song))
