@@ -2,7 +2,7 @@
 
 import mpv
 import random
-import pickle
+import json
 from youtube_dl import YoutubeDL
 from flask import Flask, render_template, request, Response
 from flask_socketio import SocketIO, emit
@@ -14,10 +14,10 @@ socketio = SocketIO(app, async_mode='threading')
 title = ""
 songs = []
 try:
-    with open("songs.p", "rb") as f:
-        songs = pickle.load(f)
+    with open("songs.json", "r") as f:
+        songs = json.load(f)
 except Exception as e:
-    print("Missing/invalid songs.p file, skipping: " + str(e))
+    print("Missing/invalid songs.json file, skipping: " + str(e))
 end_handled = False
 ydl = YoutubeDL({ 'format': 'bestaudio/best' })
 
@@ -28,7 +28,7 @@ def next_song():
     global title
     try:
         song = random.choice(songs)
-        title = song[1]['title']
+        title = song[1]
         player.play(song[0])
     except IndexError:
         title = ''
@@ -36,10 +36,10 @@ def next_song():
 
 def changed_songs():
     try:
-        with open("songs.p", "wb") as f:
-            pickle.dump(songs, f)
+        with open("songs.json", "w") as f:
+            json.dump(songs, f)
     except Exception as e:
-        print("Could not save to songs.p, skipping: " + str(e))
+        print("Could not save to songs.json, skipping: " + str(e))
     emit('playlist', songs, broadcast=True)
 
 def mpv_log(loglevel, component, message):
@@ -97,7 +97,7 @@ def add(song):
         if r.get('_type', 'video') != 'video':
             emit('ytcp-error', 'Non-video ({}) link is not supported'.format(r['_type']))
             return
-        songs.append([song, r])
+        songs.append([song, r['title']])
         changed_songs()
     except:
         emit('ytcp-error', 'Failed to extract audio URL for {}'.format(song))
@@ -117,7 +117,7 @@ def play(song):
     global title
     try:
         song = next(s for s in songs if s[0] == song)
-        title = song[1]['title']
+        title = song[1]
         player.play(song[0])
         emit('next', title, broadcast=True)
     except StopIteration:
